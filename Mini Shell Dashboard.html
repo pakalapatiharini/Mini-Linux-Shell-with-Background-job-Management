@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mini Shell Dashboard</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f5fb;--panel:#fff;--panel2:#f6f8fd;--term:#fbfcff;--line:#dde3f2;--text:#131a33;--muted:#5d6b8f;--accent:#4f56e8;--ink:#fff;--ok:#0f9d6b;--err:#d4263f;--warn:#b7791f;--chip:#e7eafc}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#070d1c;--panel:#0e1730;--panel2:#0a1126;--term:#060b18;--line:#1c2a4d;--text:#e8edfb;--muted:#7d8bb0;--accent:#7c83ff;--ink:#0b0f26;--ok:#34d399;--err:#ff6b7a;--warn:#fbbf24;--chip:#1a2550}}
+:root[data-theme="dark"]{--bg:#070d1c;--panel:#0e1730;--panel2:#0a1126;--term:#060b18;--line:#1c2a4d;--text:#e8edfb;--muted:#7d8bb0;--accent:#7c83ff;--ink:#0b0f26;--ok:#34d399;--err:#ff6b7a;--warn:#fbbf24;--chip:#1a2550}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 "Segoe UI",system-ui,sans-serif;padding:20px 14px 40px}
+.wrap{max-width:860px;margin:0 auto}
+.mono{font-family:"Cascadia Mono",Consolas,Menlo,monospace}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;justify-content:space-between;gap:12px;margin-bottom:16px}
+h1{margin:0 0 4px;font-size:24px}header p,.sub{margin:0;color:var(--muted);font-size:13px}
+.ghost{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12px;height:fit-content}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stats .card{margin:0}.stats small,.stats span{color:var(--muted);font-size:11px}.stats strong{display:block;font-size:20px}
+h2{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:8px}
+.badge{margin-left:auto;font-size:10px;color:var(--ok);border:1px solid var(--ok);padding:2px 8px;border-radius:4px}
+.term{border:1px solid var(--line);border-radius:10px;background:var(--term);margin-top:12px;overflow:hidden;font-size:12px}
+.bar{padding:8px 12px;border-bottom:1px solid var(--line);color:var(--ok);font-size:11px;display:flex;justify-content:space-between}
+.bar b{color:var(--accent);font-weight:400}
+#out{height:210px;overflow:auto;padding:12px}#out div{white-space:pre-wrap;word-break:break-word}
+.p{color:var(--accent)}.e{color:var(--err)}.m{color:var(--muted)}
+.row{display:flex;align-items:center;gap:10px;padding:8px 10px}
+.term .row{border-top:1px solid var(--line)}
+input{flex:1;min-width:0;background:transparent;border:0;color:var(--text);font:inherit;outline:0}
+.btn{background:var(--accent);color:var(--ink);border:0;border-radius:8px;padding:7px 14px;font-weight:600;font-size:12px}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:12px}
+.chip:hover,.ghost:hover{border-color:var(--accent)}
+.quick{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:12px}
+.nj{border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:12px;margin:12px 0}
+.nj .row{border:1px solid var(--line);border-radius:8px;background:var(--term);margin:8px 0}
+#jm{font-size:12px;min-height:18px}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:12px;min-width:480px}
+th{text-align:left;color:var(--muted);font-weight:500;padding:8px 6px;border-bottom:1px solid var(--line)}
+td{padding:9px 6px;border-bottom:1px solid var(--line)}td.em{text-align:center;color:var(--accent);padding:20px}
+.pill{padding:2px 8px;border-radius:99px;border:1px solid}
+.running{color:var(--ok)}.paused{color:var(--warn)}.completed{color:var(--muted)}.terminated{color:var(--err)}
+td button{background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:11px;margin-right:4px}
+.g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.g div{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--muted)}
+.g code{display:inline-block;background:var(--chip);color:var(--accent);padding:0 6px;border-radius:4px;margin-bottom:4px;font-size:12px}
+.note{margin-top:12px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:11px;color:var(--accent)}
+@media(max-width:640px){.stats,.g{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div><h1>Shell Dashboard</h1><p>Run commands and manage background jobs from one place.</p></div><button class="ghost" id="theme">Toggle theme</button></header>
+
+<div class="stats">
+<div class="card"><small>Server status</small><strong>Online</strong><span>Browser demo</span></div>
+<div class="card"><small>Operating system</small><strong id="os">Browser</strong><span>Detected environment</span></div>
+<div class="card"><small>Active jobs</small><strong id="aj">0</strong><span>Background tasks</span></div>
+</div>
+
+<section class="card">
+<h2>Command terminal <span class="badge">SAFE MODE</span></h2>
+<p class="sub">Only safe commands run here. Type <b class="mono">help</b> to see them.</p>
+<div class="term mono">
+<div class="bar"><span>user@mini-shell</span><b>/home/user/mini-shell</b></div>
+<div id="out" aria-live="polite"></div>
+<form class="row" id="f" autocomplete="off"><span style="color:var(--ok)">&gt;</span><input id="c" placeholder="Enter command (e.g. pwd)" aria-label="Command" autofocus><button class="btn" type="submit">Run command</button></form>
+</div>
+<div class="quick">Quick run <button class="chip mono" data-c="pwd">pwd</button><button class="chip mono" data-c="date">date</button><button class="chip mono" data-c="whoami">whoami</button><button class="chip mono" data-c="ls">ls</button></div>
+</section>
+
+<section class="card">
+<h2>Background jobs <button class="ghost" id="rf" style="margin-left:auto">Refresh</button></h2>
+<p class="sub">Launch a supported task, then pause, resume, or terminate it.</p>
+<form class="nj" id="jf" autocomplete="off"><b style="font-size:11px">New background task</b>
+<div class="row mono"><input id="jc" value="sleep 30" aria-label="Background task"><button class="btn" type="submit">+ Start job</button></div>
+<div class="quick" style="margin:0">Examples <button type="button" class="chip mono" data-j="sleep 30">sleep 30</button><button type="button" class="chip mono" data-j="date">date</button><button type="button" class="chip mono" data-j="whoami">whoami</button></div>
+<div id="jm"></div></form>
+<div class="tw"><table><thead><tr><th>Job ID</th><th>Command</th><th>Started</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jb"></tbody></table></div>
+</section>
+
+<section class="card">
+<h2>Command guide</h2>
+<div class="g mono"><div><code>pwd</code><br>Show current directory</div><div><code>ls / dir</code><br>List project files</div><div><code>date</code><br>Show current date and time</div><div><code>whoami</code><br>Show current user</div><div><code>echo hello</code><br>Print a message</div><div><code>sleep 10</code><br>Start a timed background task</div></div>
+<div class="note">Security note: this demo is a safe simulation. It never runs real shell commands.</div>
+</section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id),out=$("out");
+const FILES=["app.py","index.html","requirements.txt","static/","templates/"];
+const hist=[];let hi=0;
+function ln(t,c){const d=document.createElement("div");d.className=c||"";d.textContent=t;out.appendChild(d);out.scrollTop=out.scrollHeight}
+const ua=navigator.userAgent;$("os").textContent=/Windows/.test(ua)?"Windows":/Mac/.test(ua)?"macOS":/Android/.test(ua)?"Android":/Linux/.test(ua)?"Linux":"Browser";
+const HELP="Available commands:\n  pwd          show current directory\n  ls / dir     list files\n  date         show date and time\n  whoami       show current user\n  echo <text>  print a message\n  uname        show operating system\n  clear        clear the terminal\n  help         show this message";
+function run(raw){
+  const [cmd,...rest]=raw.trim().split(/\s+/),a=raw.trim().slice(cmd.length).trim();
+  switch((cmd||"").toLowerCase()){
+    case"pwd":return["/home/user/mini-shell"];
+    case"ls":case"dir":return[FILES.join("\n")];
+    case"date":return[new Date().toString().slice(0,24)];
+    case"whoami":return["user"];
+    case"echo":return[a];
+    case"uname":return[$("os").textContent];
+    case"help":return[HELP];
+    default:return["Error: command not allowed: "+cmd+" (type 'help')",1];
+  }
+}
+function exec(raw){
+  raw=raw.trim();if(!raw)return;hist.push(raw);hi=hist.length;ln("> "+raw,"p");
+  if(raw.toLowerCase()==="clear"){out.innerHTML="";return}
+  const[r,err]=run(raw);if(r)ln(r,err?"e":"");
+}
+$("f").onsubmit=e=>{e.preventDefault();exec($("c").value);$("c").value=""};
+$("c").onkeydown=e=>{if(e.key==="ArrowUp"&&hi>0){$("c").value=hist[--hi];e.preventDefault()}if(e.key==="ArrowDown"){hi=Math.min(hi+1,hist.length);$("c").value=hist[hi]||""}};
+document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>exec(b.dataset.c));
+document.querySelectorAll("[data-j]").forEach(b=>b.onclick=()=>{$("jc").value=b.dataset.j});
+ln("Mini Linux Shell Dashboard v1.0","m");ln("Type a command below. Example: pwd, date, whoami, ls, help","m");
+
+/* jobs */
+const jobs=[];let nid=1;
+function msg(t,e){const m=$("jm");m.textContent=t;m.style.color=e?"var(--err)":"var(--ok)"}
+$("jf").onsubmit=e=>{
+  e.preventDefault();const p=$("jc").value.trim().split(/\s+/),c=p[0]?.toLowerCase();let total;
+  if(c==="sleep"){total=+p[1];if(p.length!==2||!Number.isInteger(total)||total<1||total>600)return msg("Usage: sleep <seconds> (1 to 600)",1)}
+  else if(c==="date"||c==="whoami")total=5;
+  else return msg("Supported: sleep <seconds>, date, whoami",1);
+  jobs.push({id:nid,cmd:p.join(" "),t:new Date().toLocaleTimeString(),total,el:0,st:"running"});msg("Started job #"+nid++);draw();
+};
+setInterval(()=>{let ch=0;jobs.forEach(j=>{if(j.st==="running"){j.el++;ch=1;if(j.el>=j.total)j.st="completed"}});if(ch)draw()},1000);
+$("jb").onclick=e=>{const b=e.target.closest("button[data-a]");if(!b)return;const j=jobs.find(x=>x.id==b.dataset.id);
+  if(b.dataset.a==="pause")j.st="paused";if(b.dataset.a==="resume")j.st="running";if(b.dataset.a==="terminate")j.st="terminated";draw()};
+$("rf").onclick=()=>draw();
+function draw(){
+  $("aj").textContent=jobs.filter(j=>j.st==="running"||j.st==="paused").length;
+  $("jb").innerHTML=jobs.length?jobs.slice().reverse().map(j=>{
+    const live=j.st==="running"||j.st==="paused",id=`data-id="${j.id}"`;
+    const acts=live?(j.st==="running"?`<button data-a="pause" ${id}>Pause</button>`:`<button data-a="resume" ${id}>Resume</button>`)+`<button data-a="terminate" ${id}>Terminate</button>`:"&ndash;";
+    return`<tr><td class="mono">#${j.id}</td><td class="mono">${j.cmd}</td><td>${j.t}</td><td>${j.el}/${j.total}s</td><td><span class="pill ${j.st}">${j.st}</span></td><td>${acts}</td></tr>`}).join("")
+    :'<tr><td class="em" colspan="6">No jobs yet. Start a background task above.</td></tr>';
+}
+draw();
+$("theme").onclick=()=>{const r=document.documentElement,d=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches;r.dataset.theme=d?"light":"dark"};
+</script>
+</body>
+</html>
